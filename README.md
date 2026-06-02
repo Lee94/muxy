@@ -28,7 +28,6 @@ Lightweight terminal that has a rich API for extensions
 - Project groups
 - Vertical tabs
 - Split panes
-- Built-in VCS (status, diff, commit history, branches, PRs)
 - Git worktrees
 - Diff viewer (unified & split)
 - File tree
