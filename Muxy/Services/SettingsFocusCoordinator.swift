@@ -24,7 +24,6 @@ final class SettingsFocusCoordinator {
 enum SettingsFocusRequest: Hashable {
     case projectPickerDefaultLocation
     case remoteDevices
-    case browser
 
     var notificationName: Notification.Name {
         switch self {
@@ -32,8 +31,6 @@ enum SettingsFocusRequest: Hashable {
             .focusProjectPickerDefaultLocation
         case .remoteDevices:
             .focusRemoteDevicesSettings
-        case .browser:
-            .focusBrowserSettings
         }
     }
 }

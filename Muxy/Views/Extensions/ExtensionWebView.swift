@@ -14,7 +14,6 @@ struct ExtensionWebView: NSViewRepresentable {
     let focused: Bool
     let onFocus: () -> Void
 
-    @Environment(BrowserProfileStore.self) private var browserProfileStore: BrowserProfileStore?
     @Environment(\.overlayActive) private var overlayActive
 
     func makeCoordinator() -> Coordinator {
@@ -37,8 +36,7 @@ struct ExtensionWebView: NSViewRepresentable {
             appState: appState,
             projectStore: projectStore,
             worktreeStore: worktreeStore,
-            projectGroupStore: projectGroupStore,
-            browserProfileStore: browserProfileStore
+            projectGroupStore: projectGroupStore
         )
         context.coordinator.bridge = bridge
 

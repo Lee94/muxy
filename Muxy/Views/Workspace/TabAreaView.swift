@@ -19,7 +19,6 @@ struct TabAreaView: View {
     var onToggleMaximize: (() -> Void)?
     @Environment(TabDragCoordinator.self) private var dragCoordinator
     @Environment(AppState.self) private var appState
-    @AppStorage(BrowserPreferences.enabledKey) private var browserEnabled = true
     @State private var isExternalDragHovering = false
     @State private var externalDragHideTask: Task<Void, any Error>?
 
@@ -43,14 +42,6 @@ struct TabAreaView: View {
                     shortcutIndexOffset: shortcutIndexOffset,
                     onSelectTab: onSelectTab,
                     onCreateTab: onCreateTab,
-                    onOpenBrowser: browserEnabled ? {
-                        appState.dispatch(.createBrowserTab(
-                            projectID: projectID,
-                            areaID: area.id,
-                            url: BrowserURL.resolve(from: BrowserURL.defaultURLString),
-                            profileID: BrowserPreferences.defaultProfileID
-                        ))
-                    } : nil,
                     onCloseTab: onCloseTab,
                     onCloseOtherTabs: { tabID in
                         closeTabs(area.tabs.filter { $0.id != tabID && !$0.isPinned }.map(\.id))
@@ -192,7 +183,6 @@ private struct TabContentView: View {
     let onFocus: () -> Void
     let onProcessExit: () -> Void
     let onSplitRequest: (SplitDirection, SplitPosition) -> Void
-    @AppStorage(BrowserPreferences.enabledKey) private var browserEnabled = true
 
     var body: some View {
         switch tab.content {
@@ -208,30 +198,6 @@ private struct TabContentView: View {
             )
         case let .extensionWebView(extensionState):
             ExtensionWebViewPane(state: extensionState, focused: focused, onFocus: onFocus)
-        case let .browser(browserState):
-            if browserEnabled {
-                BrowserPane(state: browserState, focused: focused, onFocus: onFocus)
-            } else {
-                BrowserDisabledPlaceholder()
-                    .contentShape(Rectangle())
-                    .onTapGesture { onFocus() }
-            }
         }
-    }
-}
-
-private struct BrowserDisabledPlaceholder: View {
-    var body: some View {
-        VStack(spacing: 8) {
-            Image(systemName: "globe.badge.chevron.backward")
-                .font(.system(size: 32, weight: .light))
-            Text("Built-in browser is disabled")
-                .font(.headline)
-            Text("Enable it in Settings → Browser.")
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(MuxyTheme.bg)
     }
 }

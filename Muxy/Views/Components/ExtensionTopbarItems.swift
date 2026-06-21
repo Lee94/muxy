@@ -5,7 +5,6 @@ struct ExtensionTopbarItems: View {
     @Environment(ProjectStore.self) private var projectStore
     @Environment(WorktreeStore.self) private var worktreeStore
     @Environment(ProjectGroupStore.self) private var projectGroupStore
-    @Environment(BrowserProfileStore.self) private var browserProfileStore: BrowserProfileStore?
     @Environment(ExtensionStore.self) private var extensionStore
     @State private var popoverHost = PopoverHost.shared
 
@@ -39,8 +38,7 @@ struct ExtensionTopbarItems: View {
                 appState: appState,
                 projectStore: projectStore,
                 worktreeStore: worktreeStore,
-                projectGroupStore: projectGroupStore,
-                browserProfileStore: browserProfileStore
+                projectGroupStore: projectGroupStore
             )
         )
     }

@@ -6,19 +6,16 @@ final class TerminalTab: Identifiable {
     enum Kind: String, Codable {
         case terminal
         case extensionWebView
-        case browser
     }
 
     enum Content {
         case terminal(TerminalPaneState)
         case extensionWebView(ExtensionTabState)
-        case browser(BrowserTabState)
 
         var kind: Kind {
             switch self {
             case .terminal: .terminal
             case .extensionWebView: .extensionWebView
-            case .browser: .browser
             }
         }
 
@@ -32,16 +29,10 @@ final class TerminalTab: Identifiable {
             return state
         }
 
-        var browserState: BrowserTabState? {
-            guard case let .browser(state) = self else { return nil }
-            return state
-        }
-
         var projectPath: String {
             switch self {
             case let .terminal(pane): pane.projectPath
             case let .extensionWebView(state): state.projectPath
-            case let .browser(state): state.projectPath
             }
         }
     }
@@ -63,8 +54,6 @@ final class TerminalTab: Identifiable {
             return pane.title
         case let .extensionWebView(state):
             return state.displayTitle
-        case let .browser(state):
-            return state.displayTitle
         }
     }
 
@@ -76,11 +65,6 @@ final class TerminalTab: Identifiable {
     init(extensionState: ExtensionTabState) {
         id = UUID()
         content = .extensionWebView(extensionState)
-    }
-
-    init(browserState: BrowserTabState) {
-        id = UUID()
-        content = .browser(browserState)
     }
 
     init(restoring snapshot: TerminalTabSnapshot) {
@@ -114,12 +98,6 @@ final class TerminalTab: Identifiable {
             } else {
                 content = .terminal(TerminalPaneState(projectPath: snapshot.projectPath, title: snapshot.paneTitle))
             }
-        case .browser:
-            content = .browser(BrowserTabState(
-                projectPath: snapshot.projectPath,
-                url: snapshot.browserURL.flatMap(URL.init(string:)),
-                profileID: snapshot.browserProfileID.flatMap(UUID.init(uuidString:)) ?? BrowserProfile.defaultID
-            ))
         }
     }
 
@@ -136,9 +114,7 @@ final class TerminalTab: Identifiable {
             currentWorkingDirectory: content.pane?.currentWorkingDirectory,
             extensionID: content.extensionState?.extensionID,
             extensionTabTypeID: content.extensionState?.tabTypeID,
-            extensionTabData: content.extensionState?.data,
-            browserURL: content.browserState?.url?.absoluteString,
-            browserProfileID: content.browserState?.profileID.uuidString
+            extensionTabData: content.extensionState?.data
         )
     }
 

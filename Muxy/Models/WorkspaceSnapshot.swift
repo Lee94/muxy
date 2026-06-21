@@ -111,8 +111,6 @@ struct TerminalTabSnapshot: Codable {
     let extensionID: String?
     let extensionTabTypeID: String?
     let extensionTabData: ExtensionJSON?
-    let browserURL: String?
-    let browserProfileID: String?
 
     init(
         kind: TerminalTab.Kind,
@@ -127,9 +125,7 @@ struct TerminalTabSnapshot: Codable {
         currentWorkingDirectory: String? = nil,
         extensionID: String? = nil,
         extensionTabTypeID: String? = nil,
-        extensionTabData: ExtensionJSON? = nil,
-        browserURL: String? = nil,
-        browserProfileID: String? = nil
+        extensionTabData: ExtensionJSON? = nil
     ) {
         self.kind = kind
         self.id = id
@@ -144,8 +140,6 @@ struct TerminalTabSnapshot: Codable {
         self.extensionID = extensionID
         self.extensionTabTypeID = extensionTabTypeID
         self.extensionTabData = extensionTabData
-        self.browserURL = browserURL
-        self.browserProfileID = browserProfileID
     }
 
     private enum CodingKeys: String, CodingKey {
@@ -162,8 +156,6 @@ struct TerminalTabSnapshot: Codable {
         case extensionID
         case extensionTabTypeID
         case extensionTabData
-        case browserURL
-        case browserProfileID
     }
 
     init(from decoder: Decoder) throws {
@@ -182,8 +174,6 @@ struct TerminalTabSnapshot: Codable {
         extensionID = try container.decodeIfPresent(String.self, forKey: .extensionID)
         extensionTabTypeID = try container.decodeIfPresent(String.self, forKey: .extensionTabTypeID)
         extensionTabData = try container.decodeIfPresent(ExtensionJSON.self, forKey: .extensionTabData)
-        browserURL = try container.decodeIfPresent(String.self, forKey: .browserURL)
-        browserProfileID = try container.decodeIfPresent(String.self, forKey: .browserProfileID)
     }
 }
 

@@ -130,5 +130,4 @@ public enum TabKindDTO: String, Codable, Sendable {
     case terminal
     case vcs
     case extensionWebView
-    case browser
 }
