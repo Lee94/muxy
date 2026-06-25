@@ -84,14 +84,19 @@ struct ProjectRow: View {
                     isCheckingGitRepo = false
                     return
                 }
-                isCheckingGitRepo = true
+                let context = projectGroupStore.workspaceContext(for: project)
+                if let cached = GitRepoStatusCache.shared.cachedStatus(for: project.path, context: context) {
+                    isGitRepo = cached
+                    isCheckingGitRepo = false
+                }
                 try? await Task.sleep(for: .seconds(2))
                 guard !Task.isCancelled else { return }
                 isGitRepo = await GitWorktreeService.shared.isGitRepository(
                     project.path,
-                    context: projectGroupStore.workspaceContext(for: project)
+                    context: context
                 )
                 isCheckingGitRepo = false
+                GitRepoStatusCache.shared.update(path: project.path, context: context, isGitRepo: isGitRepo)
             }
             .contextMenu {
                 if project.isHome {
