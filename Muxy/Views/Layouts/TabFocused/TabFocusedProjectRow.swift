@@ -51,6 +51,12 @@ struct TabFocusedProjectRow: View {
             }
         }
         .onAppear { applyDefaultExpansion() }
+        .onChange(of: isActive) { _, active in
+            guard active, !isExpanded else { return }
+            withAnimation(.easeInOut(duration: 0.15)) {
+                expansionStore.set(project.id, expanded: true)
+            }
+        }
         .task(id: project.path) { await checkGitRepo() }
     }
 
@@ -67,14 +73,7 @@ struct TabFocusedProjectRow: View {
                     .truncationMode(.tail)
             }
             Spacer(minLength: UIMetrics.spacing2)
-            if hovered {
-                HStack(spacing: 0) {
-                    actions
-                    chevron
-                }
-            } else {
-                statusIndicator
-            }
+            trailingControls
             if project.isPinned {
                 Image(systemName: "pin.fill")
                     .font(.system(size: UIMetrics.fontXS, weight: .semibold))
@@ -232,6 +231,20 @@ struct TabFocusedProjectRow: View {
         expansionStore.isGroupedByWorktree(project.id)
     }
 
+    private var trailingControls: some View {
+        HStack(spacing: 0) {
+            if hovered {
+                actions
+                chevron
+            } else if !isFocused {
+                statusIndicator
+            }
+            if isFocused {
+                focusModeButton
+            }
+        }
+    }
+
     @ViewBuilder
     private var actions: some View {
         if !isGroupedByWorktree {
@@ -246,6 +259,42 @@ struct TabFocusedProjectRow: View {
                 expansionStore.setGroupedByWorktree(project.id, grouped: !isGroupedByWorktree)
             }
         }
+        if !project.isHome, !isFocused {
+            focusModeButton
+        }
+    }
+
+    private var isFocused: Bool {
+        expansionStore.focusMode && isActive
+    }
+
+    private var focusModeButton: some View {
+        SidebarActionButton(
+            symbol: "scope",
+            label: isFocused ? "Exit Focus Mode" : "Focus This Project",
+            isActive: isFocused,
+            action: toggleFocusMode
+        )
+    }
+
+    private func toggleFocusMode() {
+        if isFocused {
+            expansionStore.focusMode = false
+            return
+        }
+        activateProjectIfNeeded()
+        expansionStore.focusMode = true
+    }
+
+    private func activateProjectIfNeeded() {
+        guard !isActive else { return }
+        worktreeStore.ensurePrimary(for: project)
+        guard let target = worktreeStore.preferred(
+            for: project.id,
+            matching: appState.activeWorktreeID[project.id]
+        )
+        else { return }
+        appState.selectProject(project, worktree: target)
     }
 
     private var chevron: some View {
