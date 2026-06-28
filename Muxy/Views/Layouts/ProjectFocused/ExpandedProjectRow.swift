@@ -605,7 +605,7 @@ private struct ExpandedWorktreeRow: View {
             } else {
                 HStack(spacing: UIMetrics.spacing2) {
                     Text(displayName)
-                        .font(.system(size: UIMetrics.fontBody, weight: activeStyle ? .semibold : .regular))
+                        .font(.system(size: UIMetrics.fontBody, weight: .regular))
                         .foregroundStyle(MuxyTheme.fg)
                         .lineLimit(1)
                         .truncationMode(.tail)
@@ -658,8 +658,6 @@ private struct ExpandedWorktreeRow: View {
         ZStack {
             if unread > 0 {
                 Circle().fill(MuxyTheme.accent).frame(width: UIMetrics.scaled(8), height: UIMetrics.scaled(8))
-            } else if selected {
-                Circle().fill(MuxyTheme.accent.opacity(0.4)).frame(width: UIMetrics.scaled(5), height: UIMetrics.scaled(5))
             }
         }
         .frame(width: UIMetrics.scaled(8), height: UIMetrics.scaled(8))
@@ -668,8 +666,7 @@ private struct ExpandedWorktreeRow: View {
     private var activeStyle: Bool { selected && projectActive }
 
     private var rowBackground: AnyShapeStyle {
-        if activeStyle { return AnyShapeStyle(MuxyTheme.accentSoft) }
-        if hovered { return AnyShapeStyle(MuxyTheme.hover) }
+        if activeStyle || hovered { return AnyShapeStyle(MuxyTheme.hover) }
         return AnyShapeStyle(Color.clear)
     }
 
