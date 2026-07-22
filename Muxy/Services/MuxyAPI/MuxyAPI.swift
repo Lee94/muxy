@@ -1029,7 +1029,8 @@ enum MuxyAPI {
             _ request: CreateWorktreeRequest,
             appState: AppState,
             projectStore: ProjectStore,
-            worktreeStore: WorktreeStore
+            worktreeStore: WorktreeStore,
+            projectGroupStore: ProjectGroupStore? = nil
         ) async -> Result<CreatedWorktreeInfo, APIError> {
             let trimmedName = request.name.trimmingCharacters(in: .whitespacesAndNewlines)
             let trimmedBranch = request.branch.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -1048,7 +1049,8 @@ enum MuxyAPI {
                 return .failure(.projectNotFound(request.projectIdentifier ?? ""))
             }
 
-            let workspaceContext = ActiveWorkspaceContext.shared.current
+            let workspaceContext = projectGroupStore?.workspaceContext(for: project)
+                ?? (project.isRemote ? ActiveWorkspaceContext.shared.current : .local)
             let expandedPath = workspaceContext.isRemote ? trimmedPath : NSString(string: trimmedPath).expandingTildeInPath
             let path: String
             if trimmedPath.isEmpty {

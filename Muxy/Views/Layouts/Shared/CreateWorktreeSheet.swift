@@ -12,6 +12,7 @@ struct CreateWorktreeSheet: View {
 
     @Environment(WorktreeStore.self) private var worktreeStore
     @Environment(ProjectStore.self) private var projectStore
+    @Environment(ProjectGroupStore.self) private var projectGroupStore
     @AppStorage(GeneralSettingsKeys.defaultWorktreePathTemplate)
     private var defaultWorktreePathTemplate = ""
     @AppStorage(GeneralSettingsKeys.defaultWorktreeParentPath)
@@ -32,7 +33,7 @@ struct CreateWorktreeSheet: View {
     @State private var remotePathEdited = false
 
     private var workspaceContext: WorkspaceContext {
-        ActiveWorkspaceContext.shared.current
+        projectGroupStore.workspaceContext(for: project)
     }
 
     private var gitRepository: GitRepositoryService {
