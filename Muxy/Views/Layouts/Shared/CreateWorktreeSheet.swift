@@ -24,6 +24,7 @@ struct CreateWorktreeSheet: View {
     @State private var selectedExistingBranch: String = ""
     @State private var localLocationSelection = WorktreeLocationSelection()
     @State private var availableBranches: [String] = []
+    @State private var remoteBranchGroups: [GitRepositoryService.RemoteBranchGroup] = []
     @State private var selectedBaseBranch: String = ""
     @State private var setupCommands: [String] = []
     @State private var runSetup = false
@@ -67,13 +68,7 @@ struct CreateWorktreeSheet: View {
                 }
                 VStack(alignment: .leading, spacing: UIMetrics.spacing3) {
                     Text("Base Branch").font(.system(size: UIMetrics.fontFootnote)).foregroundStyle(MuxyTheme.fgMuted)
-                    Picker("", selection: $selectedBaseBranch) {
-                        ForEach(availableBranches, id: \.self) { branch in
-                            Text(branch).tag(branch)
-                        }
-                    }
-                    .labelsHidden()
-                    .disabled(availableBranches.isEmpty)
+                    baseBranchMenu
                 }
             } else {
                 VStack(alignment: .leading, spacing: UIMetrics.spacing3) {
@@ -127,6 +122,37 @@ struct CreateWorktreeSheet: View {
             guard isCreatingNewBranch, !branchNameEdited else { return }
             branchName = name
         }
+    }
+
+    private var baseBranchMenu: some View {
+        Menu {
+            ForEach(availableBranches, id: \.self) { branch in
+                baseBranchOption(value: branch, title: branch)
+            }
+            ForEach(remoteBranchGroups, id: \.remote) { group in
+                Menu(group.remote) {
+                    ForEach(group.branches, id: \.self) { branch in
+                        baseBranchOption(value: "\(group.remote)/\(branch)", title: branch)
+                    }
+                }
+            }
+        } label: {
+            Text(selectedBaseBranch.isEmpty ? "Select a branch" : selectedBaseBranch)
+        }
+        .disabled(availableBranches.isEmpty && remoteBranchGroups.isEmpty)
+    }
+
+    private func baseBranchOption(value: String, title: String) -> some View {
+        Toggle(
+            title,
+            isOn: Binding(
+                get: { selectedBaseBranch == value },
+                set: { isSelected in
+                    guard isSelected else { return }
+                    selectedBaseBranch = value
+                }
+            )
+        )
     }
 
     private var locationSection: some View {
@@ -385,19 +411,22 @@ struct CreateWorktreeSheet: View {
         do {
             async let branchesValue = gitRepository.listBranches(repoPath: project.path)
             async let defaultValue = gitRepository.defaultBranch(repoPath: project.path)
+            async let remoteGroupsValue = gitRepository.listRemoteTrackingBranches(repoPath: project.path)
             let branches = try await branchesValue
             let resolvedDefault = await defaultValue
+            let remoteGroups = await (try? remoteGroupsValue) ?? []
             await MainActor.run {
                 availableBranches = branches
+                remoteBranchGroups = remoteGroups
                 if selectedExistingBranch.isEmpty {
                     selectedExistingBranch = branches.first ?? ""
                 }
                 if selectedBaseBranch.isEmpty {
-                    if let resolvedDefault, branches.contains(resolvedDefault) {
-                        selectedBaseBranch = resolvedDefault
-                    } else {
-                        selectedBaseBranch = branches.first ?? ""
-                    }
+                    selectedBaseBranch = defaultBaseBranch(
+                        branches: branches,
+                        remoteGroups: remoteGroups,
+                        preferred: resolvedDefault
+                    )
                 }
             }
         } catch {
@@ -405,6 +434,24 @@ struct CreateWorktreeSheet: View {
                 errorMessage = error.localizedDescription
             }
         }
+    }
+
+    private func defaultBaseBranch(
+        branches: [String],
+        remoteGroups: [GitRepositoryService.RemoteBranchGroup],
+        preferred: String?
+    ) -> String {
+        if let preferred, branches.contains(preferred) {
+            return preferred
+        }
+        if let preferred, let group = remoteGroups.first(where: { $0.branches.contains(preferred) }) {
+            return "\(group.remote)/\(preferred)"
+        }
+        if let first = branches.first {
+            return first
+        }
+        guard let group = remoteGroups.first, let branch = group.branches.first else { return "" }
+        return "\(group.remote)/\(branch)"
     }
 
     @MainActor

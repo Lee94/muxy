@@ -792,6 +792,53 @@ struct GitRepositoryService {
             .sorted { $0.localizedStandardCompare($1) == .orderedAscending }
     }
 
+    struct RemoteBranchGroup: Equatable, Sendable {
+        let remote: String
+        let branches: [String]
+    }
+
+    func listRemoteTrackingBranches(repoPath: String) async throws -> [RemoteBranchGroup] {
+        async let remotesTask = runGit(repoPath: repoPath, arguments: ["remote"])
+        async let refsTask = runGit(
+            repoPath: repoPath,
+            arguments: ["for-each-ref", "refs/remotes", "--format=%(refname)"]
+        )
+        let remotes = try await remotesTask
+        let refs = try await refsTask
+        guard remotes.status == 0, refs.status == 0 else {
+            let stderr = remotes.status == 0 ? refs.stderr : remotes.stderr
+            throw GitError.commandFailed(stderr.isEmpty ? "Failed to list remote tracking branches." : stderr)
+        }
+        return Self.remoteBranchGroups(refsOutput: refs.stdout, remotesOutput: remotes.stdout)
+    }
+
+    static func remoteBranchGroups(refsOutput: String, remotesOutput: String) -> [RemoteBranchGroup] {
+        let remotesByLength = remotesOutput
+            .split(separator: "\n", omittingEmptySubsequences: true)
+            .map { $0.trimmingCharacters(in: .whitespaces) }
+            .filter { !$0.isEmpty }
+            .sorted { $0.count > $1.count }
+        let refPrefix = "refs/remotes/"
+        var branchesByRemote: [String: [String]] = [:]
+        for line in refsOutput.split(separator: "\n", omittingEmptySubsequences: true) {
+            let ref = line.trimmingCharacters(in: .whitespaces)
+            guard ref.hasPrefix(refPrefix) else { continue }
+            let shortName = String(ref.dropFirst(refPrefix.count))
+            guard let remote = remotesByLength.first(where: { shortName.hasPrefix($0 + "/") }) else { continue }
+            let branch = String(shortName.dropFirst(remote.count + 1))
+            guard !branch.isEmpty, branch != "HEAD" else { continue }
+            branchesByRemote[remote, default: []].append(branch)
+        }
+        return branchesByRemote
+            .map { remote, branches in
+                RemoteBranchGroup(
+                    remote: remote,
+                    branches: branches.sorted { $0.localizedStandardCompare($1) == .orderedAscending }
+                )
+            }
+            .sorted { $0.remote.localizedStandardCompare($1.remote) == .orderedAscending }
+    }
+
     func defaultBranch(repoPath: String) async -> String? {
         if let cached = GitMetadataCache.shared.cachedDefaultBranch(repoPath: repoPath) {
             return cached
