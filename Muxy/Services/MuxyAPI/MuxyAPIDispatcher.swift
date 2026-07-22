@@ -1037,10 +1037,16 @@ enum MuxyAPIDispatcher {
             appState: context.appState,
             worktreeStore: context.worktreeStore
         )
+        let workspaceContext = ExtensionBridgeShared.activeWorkspaceContext(
+            appState: context.appState,
+            projectStore: context.projectStore,
+            projectGroupStore: context.projectGroupStore
+        )
         let result = try await ExtensionCommandExecutor.exec(
             request: request,
             extensionID: context.extensionID,
-            defaultCwd: defaultCwd
+            defaultCwd: defaultCwd,
+            workspaceContext: workspaceContext
         )
         return ExtensionBridgeShared.encodeExecResult(result)
     }

@@ -351,9 +351,19 @@ private final class ScriptBridge: @unchecked Sendable {
                     appState: self.appState,
                     worktreeStore: self.stores.worktreeStore
                 )
+                let workspaceContext = ExtensionBridgeShared.activeWorkspaceContext(
+                    appState: self.appState,
+                    projectStore: self.stores.projectStore,
+                    projectGroupStore: self.stores.projectGroupStore
+                )
                 let completion = PendingDeliveryCompletion(self.pendingChanged)
                 completion.start()
-                return ExecAsyncPreparation(request: request, defaultCwd: defaultCwd, completion: completion)
+                return ExecAsyncPreparation(
+                    request: request,
+                    defaultCwd: defaultCwd,
+                    workspaceContext: workspaceContext,
+                    completion: completion
+                )
             }
         } catch {
             Self.rejectExecAsync(reject, message: error.localizedDescription, cancelled: cancelFlag.isCancelled)
@@ -370,6 +380,7 @@ private final class ScriptBridge: @unchecked Sendable {
             request: preparation.request,
             extensionID: extensionID,
             defaultCwd: preparation.defaultCwd,
+            workspaceContext: preparation.workspaceContext,
             isCancelled: { [cancelFlag] in cancelFlag.isCancelled },
             completion: { result in
                 callback.complete(result)
@@ -554,6 +565,7 @@ private struct AnyBox<T>: @unchecked Sendable {
 private struct ExecAsyncPreparation {
     let request: ExecRequest
     let defaultCwd: String?
+    let workspaceContext: WorkspaceContext?
     let completion: PendingDeliveryCompletion
 }
 

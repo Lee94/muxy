@@ -374,6 +374,11 @@ enum SocketCommandHandler {
                 base64Payload: parts[1],
                 appState: appState,
                 worktreeStore: worktreeStore,
+                workspaceContext: ExtensionBridgeShared.activeWorkspaceContext(
+                    appState: appState,
+                    projectStore: projectStore,
+                    projectGroupStore: projectGroupStore
+                ),
                 extensionID: clientContext.extensionID
             )
         case "dialog.confirm":
@@ -503,6 +508,7 @@ enum SocketCommandHandler {
         base64Payload: String,
         appState: AppState,
         worktreeStore: WorktreeStore?,
+        workspaceContext: WorkspaceContext?,
         extensionID: String?
     ) async -> String {
         guard let extensionID else { return "error:identify required" }
@@ -525,7 +531,8 @@ enum SocketCommandHandler {
             let result = try await ExtensionCommandExecutor.exec(
                 request: request,
                 extensionID: extensionID,
-                defaultCwd: defaultCwd
+                defaultCwd: defaultCwd,
+                workspaceContext: workspaceContext
             )
             let resultJSON = ExtensionBridgeShared.encodeExecResult(result)
             guard let encoded = try? JSONSerialization.data(withJSONObject: resultJSON) else {

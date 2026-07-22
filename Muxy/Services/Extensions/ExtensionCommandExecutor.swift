@@ -43,9 +43,14 @@ enum ExtensionCommandExecutor {
     static func exec(
         request: ExecRequest,
         extensionID: String,
-        defaultCwd: String?
+        defaultCwd: String?,
+        workspaceContext: WorkspaceContext? = nil
     ) async throws -> ExecResult {
-        let context = try await authorizeExec(request: request, extensionID: extensionID)
+        let context = try await authorizeExec(
+            request: request,
+            extensionID: extensionID,
+            workspaceContext: workspaceContext
+        )
         return try await runUnchecked(
             request: request,
             extensionID: extensionID,
@@ -59,22 +64,25 @@ enum ExtensionCommandExecutor {
         request: ExecRequest,
         extensionID: String,
         defaultCwd: String?,
+        workspaceContext: WorkspaceContext? = nil,
         isCancelled: @escaping @Sendable () -> Bool = { false },
         onCancellationClaimed: @escaping @Sendable () -> Void = {},
-        authorize: @escaping ExecJob.Authorizer = { request, extensionID in
-            try await ExtensionCommandExecutor.authorizeExec(
-                request: request,
-                extensionID: extensionID
-            )
-        },
+        authorize: ExecJob.Authorizer? = nil,
         completion: @escaping @Sendable (Result<ExecResult, Error>) -> Void
     ) -> String {
+        let authorizer = authorize ?? { request, extensionID in
+            try await ExtensionCommandExecutor.authorizeExec(
+                request: request,
+                extensionID: extensionID,
+                workspaceContext: workspaceContext
+            )
+        }
         let job = ExecJob(
             id: jobID,
             request: request,
             extensionID: extensionID,
             defaultCwd: defaultCwd,
-            authorizer: authorize,
+            authorizer: authorizer,
             onCancellationClaimed: onCancellationClaimed,
             completion: completion,
             onRemove: { id in jobs.remove(id: id) }
@@ -144,7 +152,11 @@ enum ExtensionCommandExecutor {
     }
 
     @MainActor
-    static func authorizeExec(request: ExecRequest, extensionID: String) async throws -> WorkspaceContext {
+    static func authorizeExec(
+        request: ExecRequest,
+        extensionID: String,
+        workspaceContext: WorkspaceContext? = nil
+    ) async throws -> WorkspaceContext {
         guard ExtensionStore.shared.extensionHasPermission(id: extensionID, permission: .commandsExec) else {
             throw ExecError.invalidArguments("permission denied (\(ExtensionPermission.commandsExec.rawValue))")
         }
@@ -158,7 +170,7 @@ enum ExtensionCommandExecutor {
         guard decision == .allow else {
             throw ExecError.invalidArguments("user denied consent for exec")
         }
-        return ActiveWorkspaceContext.shared.current
+        return workspaceContext ?? ActiveWorkspaceContext.shared.current
     }
 
     static func configureLaunch(

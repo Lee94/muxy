@@ -95,6 +95,23 @@ enum ExtensionBridgeShared {
         return worktreeStore.worktree(projectID: projectID, worktreeID: worktreeID)?.path
     }
 
+    static func activeWorkspaceContext(
+        appState: AppState?,
+        projectStore: ProjectStore?,
+        projectGroupStore: ProjectGroupStore?
+    ) -> WorkspaceContext? {
+        guard let appState,
+              let projectStore,
+              let projectGroupStore,
+              let project = projectGroupStore.resolveProject(
+                  identifier: nil,
+                  localProjects: projectStore.projects,
+                  activeProjectID: appState.activeProjectID
+              )
+        else { return nil }
+        return projectGroupStore.workspaceContext(for: project)
+    }
+
     static func decodeExtensionLocalEvent(args: [String: Any]) throws -> ExtensionLocalEvent.Message {
         guard let name = args["event"] as? String, ExtensionLocalEvent.isValidName(name) else {
             throw APIError.invalidArguments("extension events must start with extension.")
